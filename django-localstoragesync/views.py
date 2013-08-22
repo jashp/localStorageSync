@@ -39,6 +39,7 @@ def sync(request):
 			entry.user = request.user
 			entry.key = key
 			entry.value = e["v"]
+			entry.time = e["ts"]
 			entry.save()
 
 

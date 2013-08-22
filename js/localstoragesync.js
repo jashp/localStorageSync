@@ -1,59 +1,67 @@
 var LocalStorageSync = function() {
-	var suffix = ":ts";
-	var lastSync = "ls";
+	var prefix = "lss_";
+	var lastSync = "lastSync";
+	var pending = {};
 
-	if (localStorage.getItem(lastSync) == null)
-		localStorage.setItem(lastSync, 0);
-
-	var _timestamp() {
-		return int(new Date().getTime() / 1000);
+	var _timestamp = function() {
+		return Math.floor(new Date().getTime() / 1000);
 	}
+
+	var _getLastSync = function() {
+		var ls = localStorage.getItem(lastSync);
+		if (ls == null) return 0;
+		return ls;
+	}
+
+	var _setLastSync = function(time) {
+		if (time == null) time = _timestamp();
+		localStorage.setItem(lastSync, time);
+	}
+
 	var _getPending = function() {
 		var r = {};
-		var lastSync = localStorage.getItem(lastSync);
+		var lastSync = _getLastSync();
 		for (var i = 0; i < localStorage.length; i++){
-			key = localStorage.key(i);
-			keySuffix = key.substring(key.length - suffix.length, key.length);
-			if (keySuffix == suffix) {
-				var time = _getTime(key);
-				if (time > lastSync) {
-					r[key] = {v:localStorage.getItem(key),ts:time};
+			prefixKey = localStorage.key(i);
+			if (prefixKey.substring(0, prefix.length) == prefix) {
+				var entry = localStorage.getItem(prefixKey);
+				if (entry["ts"] > lastSync) {
+					r[key.substring(prefix.length)] = entry;
 				}
 			}
 		}
 		return r;
 	}
 
-	var _setTime = function(key, value) {
-		return localStorage.setItem(key+suffix, value);
-	}
-
 	var _getTime = function(key) {
-		return localStorage.getItem(key+suffix);
+		var o = JSON.parse(localStorage.getItem(prefix+key));
+		if (o == null) return null
+		return o["ts"];
 	}
 
 	this.getItem = function(key) {
-		return localStorage.getItem(key);
+		var o = JSON.parse(localStorage.getItem(prefix+key));
+		if (o == null) return null
+		return o["v"];
 	}
 
 	this.removeItem = function(key) {
-		return localStorage.removeItem(key);
+		return localStorage.removeItem(prefix+key);
 	}
 
 	this.setItem = function(key, value) {
 		var time = _timestamp();
-		localStorage.setItem(key, value);
-		_setTime(key, time);
+		localStorage.setItem(prefix+key, JSON.stringify({v:value,ts:time}));
 		pending[key] = {v:value,ts:time};
 	}
 
 	this.sync = function() {
 		console.log(JSON.stringify(pending));
-		console.log(localStorage.getItem(lastSync));
+		console.log(_getLastSync());
 		$.ajax({
 			url: "/sync",
 			type: "POST",
-			data: {entries:JSON.stringify(pending), since:localStorage.getItem(lastSync)},
+			data: {entries:JSON.stringify(pending), since:_getLastSync()},
 		}).done(function(repsonse) {
 			console.log(repsonse);
 			response = JSON.parse(repsonse);
@@ -61,15 +69,14 @@ var LocalStorageSync = function() {
 				var clientTime = _getTime(key);
 				var serverTime = response[key]["ts"];
 				if (serverTime > clientTime) {
-					localStorage.setItem(key, response[key]["v"]);
-					_setTime(key, serverTime);
+					localStorage.setItem(prefix+key, JSON.stringify(response[key]));
 				}
 			}
 			pending = {}
-			localStorage.setItem(lastSync, _timestamp());
+			_setLastSync();
 		});
 	};
 
-	var pending = getPending();
+	pending = _getPending();
 }
 
