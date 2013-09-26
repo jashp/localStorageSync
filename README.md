@@ -5,7 +5,7 @@ localStorageSync allows you to sync client side storage on simple web apps. An e
 
 # Usage
 
-Include the JS file. The only dependancy is jQuery 1.5+.
+Include the JS file. The only dependency is jQuery 1.5+.
 Create a LocalStorageSync object and proceed to use it like you would localStorage.
 
     var localStorageSync = new LocalStorageSync();
@@ -13,7 +13,7 @@ Create a LocalStorageSync object and proceed to use it like you would localStora
     alert(localStorageSync.getItem("key"));
 
 
-When you want to perform a sync (simultaniously pushes and pulls), call the appropriate function.
+When you want to perform a sync (simultaneously pushes and pulls), call the appropriate function.
 
     localStorageSync.sync();
 
